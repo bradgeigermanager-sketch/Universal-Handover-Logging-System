@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Handover Logging System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col md:flex-row antialiased">
+
+    <aside class="w-full md:w-1/4 bg-slate-950 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col h-64 md:h-screen sticky top-0 z-10">
+        <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400">
+                <i class="fas fa-terminal mr-2 text-blue-400"></i><span data-lang="logHeader">Log</span>
+            </h2>
+            
+            <div class="flex items-center gap-1.5 bg-slate-900 px-2 py-1 rounded border border-slate-800">
+                <i class="fas fa-globe text-slate-500 text-xs"></i>
+                <select id="langSelector" class="bg-transparent text-slate-300 text-xs font-bold focus:outline-none cursor-pointer">
+                    <option value="eng" class="bg-slate-900">English</option>
+                    <option value="zh-cn" class="bg-slate-900">简体中文</option>
+                    <option value="zh-tr" class="bg-slate-900">繁體中文</option>
+                    <option value="ru" class="bg-slate-900">Русский</option>
+                    <option value="es" class="bg-slate-900">Español</option>
+                </select>
+            </div>
+        </div>
+        <iframe id="logFrame" src="" class="w-full flex-grow border-none bg-slate-950"></iframe>
+    </aside>
+
+    <main class="w-full md:w-3/4 p-6 md:p-8 overflow-y-auto h-screen">
+        <header class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-800 pb-6">
+            <div>
+                <h1 data-lang="title" class="text-2xl font-extrabold text-white tracking-tight">Handover Manifest</h1>
+                <p data-lang="subtitle" class="text-sm text-slate-400 mt-1">Operational status updates.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="loadTemplate()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded border border-slate-700 transition-colors cursor-pointer">
+                    <i class="fas fa-folder-open mr-1 text-amber-400"></i><span data-lang="btnTemplate">Load</span>
+                </button>
+                <button type="button" onclick="exportData('json')" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded border border-slate-700 transition-colors cursor-pointer">
+                    <i class="fas fa-file-code mr-1 text-blue-400"></i><span data-lang="btnExportJson">JSON</span>
+                </button>
+                <button type="button" onclick="exportData('csv')" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded border border-slate-700 transition-colors cursor-pointer">
+                    <i class="fas fa-file-csv mr-1 text-emerald-400"></i><span data-lang="btnExportCsv">CSV</span>
+                </button>
+            </div>
+        </header>
+
+        <form id="handoverForm" class="space-y-6 max-w-5xl">
+            <fieldset class="bg-slate-800/40 p-5 rounded-lg border border-slate-800/80 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label for="date" data-lang="fields.date" class="block text-xs font-semibold text-slate-400 mb-1">Date</label>
+                    <input type="date" id="date" name="date" required class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors">
+                </div>
+                <div>
+                    <label for="time" data-lang="fields.time" class="block text-xs font-semibold text-slate-400 mb-1">Time</label>
+                    <input type="time" id="time" name="time" required class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors">
+                </div>
+                <div>
+                    <label for="shift" data-lang="fields.shift" class="block text-xs font-semibold text-slate-400 mb-1">Shift</label>
+                    <select id="shift" name="shift" required class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors">
+                        <option value="Morning" id="opt_morning">Morning</option>
+                        <option value="Swing" id="opt_swing">Swing</option>
+                        <option value="Graveyard" id="opt_graveyard">Graveyard</option>
+                    </select>
+                </div>
+            </fieldset>
+
+            <fieldset class="bg-slate-800/40 p-5 rounded-lg border border-slate-800/80 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="outgoingName" data-lang="fields.outgoing" class="block text-xs font-semibold text-slate-400 mb-1">Outgoing Operator</label>
+                    <input type="text" id="outgoingName" name="outgoingName" required class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors">
+                </div>
+                <div>
+                    <label for="incomingName" data-lang="fields.incoming" class="block text-xs font-semibold text-slate-400 mb-1">Incoming Operator</label>
+                    <input type="text" id="incomingName" name="incomingName" required class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors">
+                </div>
+            </fieldset>
+
+            <fieldset class="bg-slate-800/40 p-5 rounded-lg border border-slate-800/80 shadow-sm space-y-4">
+                <div>
+                    <span data-lang="fields.rating" class="block text-xs font-semibold text-slate-400 mb-2">Rating</span>
+                    <div class="flex flex-wrap gap-4">
+                        <label class="flex items-center gap-2 bg-slate-900/60 border border-slate-700 px-4 py-2.5 rounded cursor-pointer hover:bg-slate-900 transition-colors">
+                            <input type="radio" name="status" value="Normal" checked class="text-emerald-500 focus:ring-0">
+                            <span class="text-sm font-medium text-emerald-400">Normal</span>
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-900/60 border border-slate-700 px-4 py-2.5 rounded cursor-pointer hover:bg-slate-900 transition-colors">
+                            <input type="radio" name="status" value="Warning" class="text-amber-500 focus:ring-0">
+                            <span class="text-sm font-medium text-amber-400">Warning</span>
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-900/60 border border-slate-700 px-4 py-2.5 rounded cursor-pointer hover:bg-slate-900 transition-colors">
+                            <input type="radio" name="status" value="Critical" class="text-red-500 focus:ring-0">
+                            <span class="text-sm font-medium text-red-400">Critical</span>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <label for="accomplishments" data-lang="fields.accomplishments" class="block text-xs font-semibold text-slate-400 mb-1">Accomplishments</label>
+                    <textarea id="accomplishments" name="accomplishments" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"></textarea>
+                </div>
+            </fieldset>
+
+            <fieldset class="bg-slate-800/40 p-5 rounded-lg border border-slate-800/80 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="actionItems" data-lang="fields.actionItems" class="block text-xs font-semibold text-slate-400 mb-1">Action Items</label>
+                    <textarea id="actionItems" name="actionItems" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"></textarea>
+                </div>
+                <div>
+                    <label for="incidents" data-lang="fields.incidents" class="block text-xs font-semibold text-slate-400 mb-1">Incidents</label>
+                    <textarea id="incidents" name="incidents" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"></textarea>
+                </div>
+            </fieldset>
+
+            <fieldset class="bg-slate-800/40 p-5 rounded-lg border border-slate-800/80 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="equipmentStatus" data-lang="fields.equipment" class="block text-xs font-semibold text-slate-400 mb-1">Equipment</label>
+                    <textarea id="equipmentStatus" name="equipmentStatus" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"></textarea>
+                </div>
+                <div>
+                    <label for="inventoryNotes" data-lang="fields.inventory" class="block text-xs font-semibold text-slate-400 mb-1">Inventory</label>
+                    <textarea id="inventoryNotes" name="inventoryNotes" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"></textarea>
+                </div>
+            </fieldset>
+
+            <footer class="flex items-center justify-between border-t border-slate-800 pt-4 mt-8">
+                <button type="button" onclick="resetForm()" class="px-5 py-2.5 text-xs font-bold text-slate-400 hover:text-red-400 bg-transparent hover:bg-red-500/10 rounded transition-all cursor-pointer">
+                    <i class="fas fa-trash-alt mr-1"></i><span data-lang="btnWipe">Wipe</span>
+                </button>
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold tracking-wide uppercase rounded shadow-md hover:shadow-blue-500/20 transition-all cursor-pointer">
+                    <i class="fas fa-file-signature mr-1"></i><span data-lang="btnCommit">Commit</span>
+                </button>
+            </footer>
+        </form>
+    </main>
+
+    <script src="components/dictionary.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
