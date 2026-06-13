@@ -1,2 +1,130 @@
-// Inside the renderLogsFromStorage() function threshold check:
-btn.textContent = '👇 加载更早的历史日志 (底册冷数据区)';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Viewer Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #1e293b; color: #e2e8f0; font-family: monospace; }
+        .log-item { border-left: 3px solid #3b82f6; padding-left: 10px; margin-bottom: 10px; }
+        .log-time { color: #94a3b8; font-size: 0.8em; }
+        .log-type-info { border-color: #3b82f6; }
+        .log-type-success { border-color: #10b981; }
+        .log-type-warning { border-color: #f59e0b; }
+        .log-type-error { border-color: #ef4444; }
+        .log-entry { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+    </style>
+</head>
+<body class="p-4 h-full overflow-y-auto">
+    <div id="logContainer" class="space-y-2">
+        <div id="placeholder" class="text-center text-slate-500 mt-10">Telemetry link ready. Awaiting events...</div>
+    </div>
+
+    <script>
+        const VALID_ORIGIN = window.location.origin;
+
+        window.addEventListener('message', function(event) {
+            if (event.origin !== VALID_ORIGIN) return; // Drop cross-origin frame injections
+            if (event.data && event.data.type === 'NEW_LOG') {
+                addLog(event.data.payload);
+            }
+        });
+
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'handover_logs') {
+                renderLogsFromStorage();
+            }
+        });
+
+        function addLog(logEntry) {
+            const container = document.getElementById('logContainer');
+            const placeholder = document.getElementById('placeholder');
+            
+            if (placeholder) placeholder.remove();
+
+            const div = document.createElement('div');
+            div.className = `log-item log-type-${logEntry.level || 'info'} bg-slate-800 p-2 rounded shadow-sm log-entry`;
+            
+            const timeStr = new Date(logEntry.timestamp).toLocaleTimeString();
+            
+            let icon = 'info-circle';
+            if (logEntry.level === 'success') icon = 'check-circle';
+            if (logEntry.level === 'warning') icon = 'exclamation-triangle';
+            if (logEntry.level === 'error') icon = 'times-circle';
+
+            div.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <span class="font-bold text-sm text-slate-300">
+                        <i class="fas fa-${icon} mr-1"></i> <span class="log-title-text"></span>
+                    </span>
+                    <span class="log-time">${timeStr}</span>
+                </div>
+                <div class="text-xs text-slate-400 mt-1 whitespace-pre-line log-msg-text"></div>
+            `;
+            
+            // Explicit assignment maps value strings safely away from injection vectors
+            div.querySelector('.log-title-text').textContent = logEntry.title || '';
+            div.querySelector('.log-msg-text').textContent = logEntry.message || '';
+            
+            container.prepend(div);
+        }
+
+        function loadArchivedLogs() {
+            const archive = JSON.parse(localStorage.getItem('handover_logs_archive') || '[]');
+            if (archive.length === 0) {
+                alert('No historical entities recorded in local cold storage ledger.');
+                return;
+            }
+
+            document.getElementById('archiveLoadBtn')?.remove();
+            const container = document.getElementById('logContainer');
+            
+            archive.reverse().forEach(logEntry => {
+                const div = document.createElement('div');
+                div.className = `log-item log-type-${logEntry.level || 'info'} bg-slate-800/40 opacity-50 p-2 rounded shadow-sm mb-2`;
+                
+                const timeStr = new Date(logEntry.timestamp).toLocaleTimeString();
+                div.innerHTML = `
+                    <div class="flex justify-between items-start text-slate-400">
+                        <span class="font-bold text-sm"><i class="fas fa-history mr-1"></i> <span class="arch-title"></span></span>
+                        <span class="log-time text-xs">${timeStr}</span>
+                    </div>
+                    <div class="text-xs text-slate-500 mt-1 whitespace-pre-line arch-msg"></div>
+                `;
+                
+                div.querySelector('.arch-title').textContent = `${logEntry.title} (Archived)`;
+                div.querySelector('.arch-msg').textContent = logEntry.message || '';
+                container.appendChild(div); // Appends to bottom to preserve timeline
+            });
+        }
+
+        function renderLogsFromStorage() {
+            const logs = JSON.parse(localStorage.getItem('handover_logs') || '[]');
+            const container = document.getElementById('logContainer');
+            container.innerHTML = '';
+            
+            if (logs.length === 0) {
+                container.innerHTML = '<div id="placeholder" class="text-center text-slate-500 mt-10">Telemetry link ready. Awaiting events...</div>';
+                return;
+            }
+            
+            logs.forEach(log => addLog(log));
+
+            // Automatically mount the background data retrieval handle if threshold is hit
+            if (logs.length >= 20) {
+                const btn = document.createElement('button');
+                btn.id = 'archiveLoadBtn';
+                btn.className = 'w-full py-2 mt-4 text-xs text-slate-500 hover:text-slate-300 bg-slate-800/30 hover:bg-slate-800/60 rounded border border-dashed border-slate-700 transition-colors cursor-pointer';
+                btn.textContent = '👇 加载更早的历史日志 (底册冷数据区)';
+                btn.onclick = loadArchivedLogs;
+                container.appendChild(btn);
+            }
+        }
+
+        renderLogsFromStorage();
+    </script>
+</body>
+</html>
